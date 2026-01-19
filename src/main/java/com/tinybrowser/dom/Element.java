@@ -45,13 +45,4 @@ public class Element extends Node {
     public Map<String, String> getAttributes() {
         return Collections.unmodifiableMap(attributes);
     }
-
-    @Override
-    public String toString() {
-        return "Element{" +
-                "tagName='" + tagName + '\'' +
-                ", attributes=" + attributes +
-                ", children=" + getChildren().size() +
-                '}';
-    }
 }

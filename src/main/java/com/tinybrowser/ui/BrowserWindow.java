@@ -1,6 +1,8 @@
 package com.tinybrowser.ui;
 
+import com.tinybrowser.dom.Element;
 import com.tinybrowser.dom.Node;
+import com.tinybrowser.dom.TextNode;
 import com.tinybrowser.parser.HtmlParser;
 import javafx.application.Application;
 import javafx.geometry.Insets;
@@ -155,15 +157,56 @@ public class BrowserWindow extends Application {
         TreeItem<String> rootItem = new TreeItem<>("DOM Tree");
         rootItem.setExpanded(true);
 
-        // For now, just show a placeholder message
-        TreeItem<String> messageItem = new TreeItem<>("Parsed: " + domRoot.toString());
-        messageItem.setExpanded(true);
+        if (domRoot != null) {
+            TreeItem<String> domTreeItem = buildTreeItem(domRoot);
+            domTreeItem.setExpanded(true);
+            rootItem.getChildren().add(domTreeItem);
+        }
 
-        TreeItem<String> noteItem = new TreeItem<>("(Full DOM visualization coming soon)");
-        messageItem.getChildren().add(noteItem);
-
-        rootItem.getChildren().add(messageItem);
         domTreeView.setRoot(rootItem);
+    }
+
+    private TreeItem<String> buildTreeItem(Node node) {
+        TreeItem<String> treeItem;
+
+        if (node instanceof Element) {
+            Element element = (Element) node;
+            StringBuilder label = new StringBuilder("<" + element.getTagName());
+
+            // Add attributes to the label
+            if (!element.getAttributes().isEmpty()) {
+                for (var entry : element.getAttributes().entrySet()) {
+                    label.append(" ").append(entry.getKey())
+                         .append("=\"").append(entry.getValue()).append("\"");
+                }
+            }
+            label.append(">");
+
+            treeItem = new TreeItem<>(label.toString());
+            treeItem.setExpanded(true);
+
+            // Add children
+            for (Node child : node.getChildren()) {
+                treeItem.getChildren().add(buildTreeItem(child));
+            }
+        } else if (node instanceof TextNode) {
+            TextNode textNode = (TextNode) node;
+            String text = textNode.getText().trim();
+
+            if (!text.isEmpty()) {
+                // Truncate long text for display
+                if (text.length() > 50) {
+                    text = text.substring(0, 47) + "...";
+                }
+                treeItem = new TreeItem<>("TEXT: \"" + text + "\"");
+            } else {
+                treeItem = new TreeItem<>("TEXT: (whitespace)");
+            }
+        } else {
+            treeItem = new TreeItem<>("Unknown node type");
+        }
+
+        return treeItem;
     }
 
     private void showError(String message) {

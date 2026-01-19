@@ -15,11 +15,4 @@ public class TextNode extends Node {
     public void setText(String text) {
         this.text = text != null ? text : "";
     }
-
-    @Override
-    public String toString() {
-        return "TextNode{" +
-                "text='" + text + '\'' +
-                '}';
-    }
 }
