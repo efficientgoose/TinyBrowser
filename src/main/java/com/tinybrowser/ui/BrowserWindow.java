@@ -1,9 +1,14 @@
 package com.tinybrowser.ui;
 
+import com.tinybrowser.css.CssParser;
+import com.tinybrowser.css.StyleSheet;
+import com.tinybrowser.dom.Document;
 import com.tinybrowser.dom.Element;
 import com.tinybrowser.dom.Node;
 import com.tinybrowser.dom.TextNode;
 import com.tinybrowser.parser.HtmlParser;
+import com.tinybrowser.style.StyleEngine;
+import com.tinybrowser.style.StyledNode;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -23,7 +28,9 @@ public class BrowserWindow extends Application {
     private TextField filePathField;
     private Button loadButton;
     private TextArea contentArea;
-    private TreeView<String> domTreeView;
+    private TreeView<Object> domTreeView;
+    private Label stylesLabel;
+    private StyledNode styledNodeRoot;
 
     @Override
     public void start(Stage primaryStage) {
@@ -44,9 +51,28 @@ public class BrowserWindow extends Application {
         contentArea = createContentArea();
         root.setCenter(contentArea);
 
+        // Bottom - Computed styles display
+        stylesLabel = createStylesLabel();
+        root.setBottom(stylesLabel);
+
         Scene scene = new Scene(root, 1200, 800);
         primaryStage.setScene(scene);
         primaryStage.show();
+    }
+
+    private Label createStylesLabel() {
+        Label label = new Label("Computed Styles: Select an element in the DOM tree to see its computed styles");
+        label.setStyle(
+            "-fx-background-color: #252525; " +
+            "-fx-text-fill: #cccccc; " +
+            "-fx-padding: 10; " +
+            "-fx-font-family: 'Courier New'; " +
+            "-fx-font-size: 12px; " +
+            "-fx-max-height: 150; " +
+            "-fx-wrap-text: true;"
+        );
+        label.setMaxHeight(150);
+        return label;
     }
 
     private HBox createToolbar() {
@@ -88,14 +114,14 @@ public class BrowserWindow extends Application {
         return toolbar;
     }
 
-    private TreeView<String> createDomTreeView() {
-        TreeItem<String> rootItem = new TreeItem<>("DOM Tree");
+    private TreeView<Object> createDomTreeView() {
+        TreeItem<Object> rootItem = new TreeItem<>("DOM Tree");
         rootItem.setExpanded(true);
 
-        TreeItem<String> placeholderItem = new TreeItem<>("Load an HTML file to see DOM structure");
+        TreeItem<Object> placeholderItem = new TreeItem<>("Load an HTML file to see DOM structure");
         rootItem.getChildren().add(placeholderItem);
 
-        TreeView<String> treeView = new TreeView<>(rootItem);
+        TreeView<Object> treeView = new TreeView<>(rootItem);
         treeView.setPrefWidth(300);
         treeView.setStyle(
             "-fx-background-color: #252525; " +
@@ -138,14 +164,26 @@ public class BrowserWindow extends Application {
             // Display raw HTML in the content area
             contentArea.setText(htmlContent);
 
-            // Parse HTML (currently just a placeholder)
+            // Parse HTML
             HtmlParser parser = new HtmlParser();
-            Node domRoot = parser.parse(htmlContent);
+            Document doc = parser.parseDocument(htmlContent);
+            Node domRoot = doc.getRootElement();
 
-            // Update DOM tree view with placeholder
+            // Extract CSS from <style> tags
+            String extractedCss = extractCssFromDocument(domRoot);
+
+            // Parse CSS
+            CssParser cssParser = new CssParser();
+            StyleSheet styleSheet = cssParser.parse(extractedCss);
+
+            // Compute styles
+            StyleEngine styleEngine = new StyleEngine();
+            styledNodeRoot = styleEngine.computeStyles(doc, styleSheet);
+
+            // Update DOM tree view
             updateDomTreeView(domRoot);
 
-            showInfo("File loaded successfully: " + filePath);
+            showInfo("File loaded successfully: " + filePath + " (" + styleSheet.getRules().size() + " CSS rules)");
 
         } catch (IOException e) {
             showError("Error reading file: " + e.getMessage());
@@ -153,21 +191,95 @@ public class BrowserWindow extends Application {
         }
     }
 
+    private String extractCssFromDocument(Node node) {
+        StringBuilder css = new StringBuilder();
+
+        if (node instanceof Element) {
+            Element element = (Element) node;
+            if ("style".equals(element.getTagName())) {
+                // Extract text from style tag
+                for (Node child : element.getChildren()) {
+                    if (child instanceof TextNode) {
+                        css.append(((TextNode) child).getText()).append("\n");
+                    }
+                }
+            }
+        }
+
+        // Recursively extract from children
+        for (Node child : node.getChildren()) {
+            css.append(extractCssFromDocument(child));
+        }
+
+        return css.toString();
+    }
+
     private void updateDomTreeView(Node domRoot) {
-        TreeItem<String> rootItem = new TreeItem<>("DOM Tree");
+        TreeItem<Object> rootItem = new TreeItem<>("DOM Tree");
         rootItem.setExpanded(true);
 
         if (domRoot != null) {
-            TreeItem<String> domTreeItem = buildTreeItem(domRoot);
+            TreeItem<Object> domTreeItem = buildTreeItem(domRoot, styledNodeRoot);
             domTreeItem.setExpanded(true);
             rootItem.getChildren().add(domTreeItem);
         }
 
         domTreeView.setRoot(rootItem);
+
+        // Add selection listener to show computed styles
+        domTreeView.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && newValue.getValue() instanceof NodeWithStyles) {
+                NodeWithStyles nodeWithStyles = (NodeWithStyles) newValue.getValue();
+                updateStylesDisplay(nodeWithStyles.styledNode);
+            }
+        });
     }
 
-    private TreeItem<String> buildTreeItem(Node node) {
-        TreeItem<String> treeItem;
+    private void updateStylesDisplay(StyledNode styledNode) {
+        if (styledNode == null) {
+            stylesLabel.setText("No styles computed");
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Computed Styles:\n");
+
+        var styles = styledNode.getComputedStyles();
+        if (styles.isEmpty()) {
+            sb.append("  (no styles)");
+        } else {
+            // Sort styles alphabetically for easier reading
+            styles.entrySet().stream()
+                .sorted(java.util.Map.Entry.comparingByKey())
+                .forEach(entry -> {
+                    sb.append("  ").append(entry.getKey())
+                      .append(": ").append(entry.getValue())
+                      .append(";\n");
+                });
+        }
+
+        stylesLabel.setText(sb.toString());
+    }
+
+    // Helper class to store node label with associated StyledNode
+    private static class NodeWithStyles {
+        final String label;
+        final StyledNode styledNode;
+
+        NodeWithStyles(String label, StyledNode styledNode) {
+            this.label = label;
+            this.styledNode = styledNode;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
+
+    private TreeItem<Object> buildTreeItem(Node node, StyledNode styledNode) {
+        TreeItem<Object> treeItem;
+        String labelStr;
 
         if (node instanceof Element) {
             Element element = (Element) node;
@@ -182,12 +294,24 @@ public class BrowserWindow extends Application {
             }
             label.append(">");
 
-            treeItem = new TreeItem<>(label.toString());
+            labelStr = label.toString();
+            treeItem = new TreeItem<>(new NodeWithStyles(labelStr, styledNode));
             treeItem.setExpanded(true);
 
             // Add children
-            for (Node child : node.getChildren()) {
-                treeItem.getChildren().add(buildTreeItem(child));
+            if (styledNode != null) {
+                int childIndex = 0;
+                for (Node child : node.getChildren()) {
+                    StyledNode childStyled = childIndex < styledNode.getChildren().size()
+                        ? styledNode.getChildren().get(childIndex)
+                        : null;
+                    treeItem.getChildren().add(buildTreeItem(child, childStyled));
+                    childIndex++;
+                }
+            } else {
+                for (Node child : node.getChildren()) {
+                    treeItem.getChildren().add(buildTreeItem(child, null));
+                }
             }
         } else if (node instanceof TextNode) {
             TextNode textNode = (TextNode) node;
@@ -198,12 +322,14 @@ public class BrowserWindow extends Application {
                 if (text.length() > 50) {
                     text = text.substring(0, 47) + "...";
                 }
-                treeItem = new TreeItem<>("TEXT: \"" + text + "\"");
+                labelStr = "TEXT: \"" + text + "\"";
             } else {
-                treeItem = new TreeItem<>("TEXT: (whitespace)");
+                labelStr = "TEXT: (whitespace)";
             }
+            treeItem = new TreeItem<>(new NodeWithStyles(labelStr, styledNode));
         } else {
-            treeItem = new TreeItem<>("Unknown node type");
+            labelStr = "Unknown node type";
+            treeItem = new TreeItem<>(new NodeWithStyles(labelStr, styledNode));
         }
 
         return treeItem;
