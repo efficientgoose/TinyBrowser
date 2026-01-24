@@ -1,0 +1,261 @@
+:root {
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252525;
+  --bg-toolbar: #2d2d2d;
+  --text-primary: #cccccc;
+  --text-secondary: #888888;
+  --accent: #0e639c;
+  --accent-hover: #1177bb;
+  --border: #444444;
+  --error: #f48771;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+.browser-window {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.toolbar {
+  background: var(--bg-toolbar);
+  padding: 10px 15px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.toolbar label {
+  color: var(--text-primary);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.toolbar input {
+  flex: 1;
+  padding: 6px 12px;
+  background: #3c3c3c;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.toolbar input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.toolbar input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar input::placeholder {
+  color: var(--text-secondary);
+}
+
+.toolbar button {
+  padding: 6px 20px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+
+.toolbar button:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.toolbar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  background: var(--error);
+  color: white;
+  padding: 12px 15px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.content-wrapper {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.dom-tree-view {
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 10px;
+  background: var(--bg-secondary);
+}
+
+.dom-tree-placeholder {
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 20px;
+  text-align: center;
+}
+
+.tree-node {
+  margin: 2px 0;
+}
+
+.tree-node-label {
+  cursor: pointer;
+  padding: 4px 6px;
+  margin: 2px 0;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.tree-node-label:hover {
+  background: #333333;
+}
+
+.tree-node-toggle {
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-secondary);
+  font-size: 10px;
+  width: 14px;
+  display: inline-block;
+  text-align: center;
+}
+
+.tree-node-text {
+  color: var(--text-primary);
+}
+
+.tree-node-children {
+  margin-left: 20px;
+  border-left: 1px solid var(--border);
+  padding-left: 4px;
+}
+
+.content-area {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: none;
+  padding: 15px;
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: none;
+  overflow: auto;
+}
+
+.content-area:focus {
+  outline: none;
+}
+
+.content-area::placeholder {
+  color: var(--text-secondary);
+}
+
+.styles-panel {
+  border-top: 1px solid var(--border);
+  padding: 12px 15px;
+  max-height: 250px;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+}
+
+.styles-panel h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}
+
+.styles-placeholder {
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 10px 0;
+}
+
+.styles-list {
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.no-styles {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.style-entry {
+  padding: 2px 0;
+  padding-left: 10px;
+}
+
+.style-entry .property {
+  color: #9cdcfe;
+}
+
+.style-entry .colon {
+  color: var(--text-primary);
+}
+
+.style-entry .value {
+  color: #ce9178;
+}
+
+.style-entry .semicolon {
+  color: var(--text-primary);
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}

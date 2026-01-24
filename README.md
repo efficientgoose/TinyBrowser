@@ -1,129 +1,243 @@
-# TinyBrowser
+# TinyBrowser - Hybrid Architecture
 
-A toy browser engine built with Java 24 and JavaFX 21 to understand how browsers work internally.
+A browser engine with Java backend (HTML/CSS parsing) and Electron + React frontend.
+
+## Architecture
+
+- **Backend (Java)**: HTML parsing, CSS parsing, DOM construction, style computation
+- **Frontend (Electron + React)**: Modern UI with DOM tree visualization and style inspector
+- **Communication**: REST API (HTTP on port 8080)
 
 ## Features
 
-- **JavaFX GUI** with dark theme
-- **File loader** for HTML files
-- **DOM tree visualization** (TreeView on left)
-- **Content display area** (currently shows raw HTML)
-- **Basic DOM classes** (Node, Element, TextNode)
-- **HTML parser scaffolding** (placeholder implementation)
+- ✅ Full HTML parsing with tokenizer
+- ✅ CSS parsing with selector matching
+- ✅ Style engine with inheritance and specificity
+- ✅ DOM tree visualization
+- ✅ Computed styles inspector
+- ✅ Modern Electron + React UI
+- ✅ REST API for frontend-backend communication
+- ✅ Dark theme matching VS Code
+
+## Prerequisites
+
+- Java 24
+- Maven 3.9+
+- Node.js 18+ and npm
+
+## Running the Application
+
+### 1. Start the Backend Server
+
+```bash
+cd backend
+mvn clean compile exec:java
+```
+
+The backend will start on `http://localhost:8080`
+
+You should see:
+```
+TinyBrowser backend server running on http://localhost:8080
+API endpoint: POST http://localhost:8080/api/parse
+```
+
+### 2. Start the Electron Frontend
+
+In a new terminal:
+
+```bash
+cd frontend
+npm install  # Only needed first time
+npm run electron:dev
+```
+
+This will:
+- Build the Electron main process
+- Start Vite development server
+- Launch the Electron app
+
+## Usage
+
+1. The app opens with a default path to `../backend/src/main/resources/sample.html`
+2. Click "Load" or press Enter to parse and display the HTML file
+3. The DOM tree appears on the left (expandable/collapsible)
+4. The raw HTML content appears in the center panel
+5. Click any node in the tree to see its computed styles at the bottom
 
 ## Project Structure
 
 ```
 TinyBrowser/
-├── src/main/java/com/tinybrowser/
-│   ├── Main.java                 # Entry point
-│   ├── ui/
-│   │   └── BrowserWindow.java   # JavaFX GUI window
-│   ├── dom/
-│   │   ├── Node.java            # Abstract base node class
-│   │   ├── Element.java         # DOM element node
-│   │   └── TextNode.java        # Text content node
-│   ├── parser/
-│   │   └── HtmlParser.java      # HTML parser (placeholder)
-│   └── css/, layout/, render/, util/ # Future packages
-├── src/main/resources/
-│   └── sample.html              # Sample HTML file for testing
-└── src/test/java/
-    └── TinyBrowserTest.java     # JUnit 5 tests
+├── backend/                            # Java backend
+│   ├── pom.xml                         # Maven configuration
+│   └── src/main/java/com/tinybrowser/
+│       ├── parser/                     # HTML tokenizer & parser
+│       ├── css/                        # CSS tokenizer & parser
+│       ├── dom/                        # DOM structures (Node, Element, TextNode)
+│       ├── style/                      # Style engine with inheritance
+│       ├── server/                     # REST API (Javalin)
+│       ├── util/                       # JSON serializer
+│       └── ui/                         # Original JavaFX UI (preserved)
+│
+└── frontend/                           # Electron frontend
+    ├── src/
+    │   ├── main/                       # Electron main process
+    │   ├── preload/                    # Electron preload script
+    │   └── renderer/                   # React UI
+    │       ├── components/             # React components
+    │       │   ├── Toolbar.tsx
+    │       │   ├── DomTreeView.tsx
+    │       │   ├── ContentArea.tsx
+    │       │   └── StylesPanel.tsx
+    │       ├── services/               # API client (Axios)
+    │       ├── types/                  # TypeScript interfaces
+    │       └── styles/                 # CSS (dark theme)
+    │
+    └── dist/                           # Build output
 ```
 
-## Requirements
+## API Endpoints
 
-- **Java 24** or later
-- **Maven 3.9+**
-- **JavaFX 21** (automatically downloaded by Maven)
+### GET /
 
-## Running the Application
+Health check endpoint
 
-### Option 1: Using Maven (Recommended)
+### POST /api/parse
+
+Parses an HTML file and returns the DOM tree with computed styles.
+
+**Request:**
+```json
+{
+  "filePath": "../backend/src/main/resources/sample.html"
+}
+```
+Note: Path can be relative to where backend is running or absolute.
+
+**Response:**
+```json
+{
+  "htmlContent": "<!DOCTYPE html>...",
+  "styledTree": {
+    "type": "element",
+    "tagName": "html",
+    "attributes": {},
+    "styles": {
+      "color": "#000000",
+      "display": "block",
+      "font-size": "16px",
+      ...
+    },
+    "children": [...]
+  }
+}
+```
+
+## Development
+
+### Backend Development
+
+All commands should be run from the `backend/` directory:
 
 ```bash
+cd backend
+
+# Run tests
+mvn test
+
+# Compile only
+mvn compile
+
+# Package as JAR
+mvn package
+
+# Run with JavaFX (original UI)
+# (Modify Main.java to launch BrowserWindow.launchApp(args))
 mvn javafx:run
 ```
 
-This will:
-1. Compile the project
-2. Download JavaFX dependencies if needed
-3. Launch the GUI window
-
-### Option 2: Building and Running JAR
+### Frontend Development
 
 ```bash
-# Build the project
-mvn clean package
+cd frontend
 
-# Run with JavaFX
-mvn javafx:run
+# Development mode (with hot reload)
+npm run dev
+
+# Build for production
+npm run build
+
+# Type checking
+npx tsc --noEmit
 ```
 
-## Using the Application
+## Technology Stack
 
-1. **Launch the application** using `mvn javafx:run`
-2. **Enter file path** in the text field (default: `src/main/resources/sample.html`)
-3. **Click "Load"** or press Enter to load the HTML file
-4. **View content** in the center text area
-5. **View DOM tree** in the left TreeView (placeholder for now)
+**Backend:**
+- Java 24
+- Maven 3.9
+- Javalin 5.6 (HTTP server)
+- Jackson 2.15 (JSON serialization)
+- SLF4J (logging)
 
-## Current Capabilities
-
-- ✅ JavaFX GUI with dark theme (1200x800 window)
-- ✅ File loading and display
-- ✅ Basic DOM data structures
-- ✅ DOM tree viewer (placeholder)
-- ✅ JUnit 5 test suite
-- ❌ HTML parsing (not yet implemented)
-- ❌ CSS parsing (not yet implemented)
-- ❌ Layout engine (not yet implemented)
-- ❌ Rendering engine (not yet implemented)
+**Frontend:**
+- Electron 28
+- React 18
+- TypeScript 5
+- Vite 5
+- Axios 1.6 (HTTP client)
 
 ## Testing
 
-Run all tests:
-
 ```bash
+# Backend tests (run from backend directory)
+cd backend
 mvn test
+
+# All tests still pass with hybrid architecture
 ```
 
 Current test coverage:
-- Element creation and attributes
-- TextNode creation
-- Node hierarchy (appendChild, removeChild)
-- HtmlParser instantiation
+- HTML tokenizer and parser
+- CSS tokenizer and parser
+- DOM structures
+- Style engine
+- Selector matching
+- Specificity computation
 
-## Development Roadmap
+## Sample HTML File
 
-1. **HTML Parser** - Tokenization and DOM tree construction
-2. **CSS Parser** - Style parsing and computation
-3. **Layout Engine** - Box model and positioning
-4. **Rendering** - Canvas-based rendering
-5. **JavaScript** - Basic scripting support (future)
+The project includes `backend/src/main/resources/sample.html` with various HTML elements and embedded CSS to demonstrate:
+- Element hierarchy
+- CSS selectors (type, class, id)
+- Style inheritance
+- Specificity resolution
 
-## IDE Setup
+## Notes
 
-### IntelliJ IDEA
+- The backend must be running before starting the frontend
+- The frontend makes HTTP requests to `http://localhost:8080`
+- All existing Java unit tests still pass
+- The original JavaFX UI code is preserved in `backend/src/main/java/com/tinybrowser/ui/BrowserWindow.java`
+- CORS is enabled on the backend for frontend communication
 
-1. Open the project folder
-2. Maven will auto-import dependencies
-3. Run configuration:
-   - Main class: `com.tinybrowser.Main`
-   - VM options: `--module-path /path/to/javafx-sdk/lib --add-modules javafx.controls,javafx.graphics`
-   - Or simply use: `mvn javafx:run`
+## Troubleshooting
 
-### VS Code
+**Backend won't start:**
+- Make sure port 8080 is not in use
+- Check Java version: `java -version` (should be 24)
+- Try: `cd backend && mvn clean compile exec:java`
 
-1. Install "Extension Pack for Java"
-2. Open the project folder
-3. Use terminal: `mvn javafx:run`
+**Frontend won't connect:**
+- Verify backend is running: `curl http://localhost:8080/`
+- Check browser console for errors
+- Ensure no firewall blocking localhost:8080
+
+**Electron window is blank:**
+- Check if Vite dev server is running on port 5173
+- Look for errors in Electron DevTools (opens automatically in dev mode)
 
 ## License
 
 Educational project - MIT License
-
-## Contributing
-
-This is a learning project. Feel free to fork and experiment!
